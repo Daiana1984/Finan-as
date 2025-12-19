@@ -1,9 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { FinancialSummary, Transaction } from "../types";
 
-// Initialize the client. 
-// Note: In a real production SaaS, this call should likely go through a backend proxy 
-// to protect the API key, or use a specific limited scope key.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getFinancialAdvice = async (
@@ -13,10 +10,14 @@ export const getFinancialAdvice = async (
   try {
     const model = "gemini-2.5-flash";
     
-    // Prepare data for the prompt
-    const expenseList = transactions
-      .filter(t => t.type === 'expense')
-      .map(t => `- ${t.name}: R$ ${t.amount.toFixed(2)}`)
+    const fixedList = transactions
+      .filter(t => t.type === 'fixed_expense')
+      .map(t => `- [FIXO] ${t.name}: R$ ${t.amount.toFixed(2)}`)
+      .join('\n');
+
+    const variableList = transactions
+      .filter(t => t.type === 'variable_expense')
+      .map(t => `- [VARIÁVEL] ${t.name}: R$ ${t.amount.toFixed(2)}`)
       .join('\n');
       
     const incomeList = transactions
@@ -25,27 +26,26 @@ export const getFinancialAdvice = async (
       .join('\n');
 
     const prompt = `
-      Atue como um consultor financeiro pessoal amigável e direto.
-      Analise os seguintes dados financeiros mensais de um usuário:
+      Atue como um consultor financeiro pessoal expert em economia doméstica.
+      Analise os seguintes dados do mês:
 
       RESUMO:
-      - Total Entradas: R$ ${summary.totalIncome.toFixed(2)}
-      - Total Saídas Fixas: R$ ${summary.totalExpense.toFixed(2)}
-      - Saldo Disponível: R$ ${summary.balance.toFixed(2)}
+      - Entradas: R$ ${summary.totalIncome.toFixed(2)}
+      - Gastos Fixos (Essenciais): R$ ${summary.totalFixedExpense.toFixed(2)}
+      - Gastos Variáveis (Lifestyle): R$ ${summary.totalVariableExpense.toFixed(2)}
+      - Saldo Líquido: R$ ${summary.balance.toFixed(2)}
       - Meta de Poupança: R$ ${summary.savingsGoal.toFixed(2)}
-      - Situação Atual: ${summary.status}
+      - Status: ${summary.status}
 
-      DETALHE DAS ENTRADAS:
-      ${incomeList}
+      LISTA DE GASTOS:
+      ${fixedList}
+      ${variableList}
 
-      DETALHE DAS SAÍDAS:
-      ${expenseList}
-
-      Por favor, forneça um conselho curto (máximo 3 parágrafos) e 3 dicas práticas em formato de lista (bullet points) para melhorar a saúde financeira ou atingir a meta de poupança.
-      Use uma linguagem simples, encorajadora e sem jargões técnicos.
-      Se o usuário estiver no vermelho (deficit), foque em redução de danos.
-      Se estiver no azul, foque em otimização ou parabenize.
-      Formate a resposta em Markdown simples.
+      INSTRUÇÃO:
+      Forneça uma análise estratégica focada em como o usuário pode atingir sua meta de poupança. 
+      Se o saldo após a meta for negativo, indique especificamente quais gastos variáveis podem ser revistos.
+      Se for positivo, sugira onde investir o excedente.
+      Responda em Markdown, sendo direto e motivador. Máximo 3 parágrafos e 3 bullet points.
     `;
 
     const response = await ai.models.generateContent({
@@ -53,9 +53,8 @@ export const getFinancialAdvice = async (
       contents: prompt,
     });
 
-    return response.text || "Não foi possível gerar uma análise no momento.";
+    return response.text || "Análise indisponível.";
   } catch (error) {
-    console.error("Erro ao consultar Gemini:", error);
-    return "Desculpe, ocorreu um erro ao conectar com o assistente financeiro. Verifique sua chave de API ou tente novamente mais tarde.";
+    return "Erro ao consultar o assistente de IA.";
   }
 };

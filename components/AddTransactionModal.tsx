@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, ArrowUpCircle, Receipt, ArrowDownCircle } from 'lucide-react';
 import { TransactionType } from '../types';
 
 interface AddTransactionModalProps {
@@ -9,7 +9,7 @@ interface AddTransactionModalProps {
   defaultType?: TransactionType;
 }
 
-export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAdd, defaultType = 'expense' }) => {
+export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAdd, defaultType = 'fixed_expense' }) => {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>(defaultType);
@@ -20,78 +20,83 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
     e.preventDefault();
     if (!name || !amount) return;
     
-    onAdd(name, parseFloat(amount.replace(',', '.')), type); // Basic handling for PT-BR comma
+    onAdd(name, parseFloat(amount.replace(',', '.')), type);
     setName('');
     setAmount('');
     onClose();
   };
 
+  const types: { id: TransactionType; label: string; icon: any; color: string }[] = [
+    { id: 'income', label: 'Entrada', icon: ArrowUpCircle, color: 'text-emerald-600' },
+    { id: 'fixed_expense', label: 'Fixo', icon: Receipt, color: 'text-rose-600' },
+    { id: 'variable_expense', label: 'Variável', icon: ArrowDownCircle, color: 'text-amber-600' },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden animate-fade-in">
-        <div className="flex justify-between items-center p-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800">Nova Movimentação</h3>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full text-slate-500">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-fade-in border border-white/20">
+        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="text-xl font-bold text-slate-800">Novo Lançamento</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
             <X size={20} />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           
-          {/* Type Toggle */}
-          <div className="flex bg-slate-100 p-1 rounded-lg mb-4">
-            <button
-              type="button"
-              onClick={() => setType('income')}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Entrada
-            </button>
-            <button
-              type="button"
-              onClick={() => setType('expense')}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                type === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Saída Fixa
-            </button>
+          <div className="grid grid-cols-3 gap-2">
+            {types.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setType(t.id)}
+                className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+                  type === t.id 
+                    ? `bg-slate-50 border-indigo-600 ${t.color}` 
+                    : 'border-slate-100 text-slate-400 hover:border-slate-200'
+                }`}
+              >
+                <t.icon size={24} />
+                <span className="text-xs font-bold">{t.label}</span>
+              </button>
+            ))}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-            <input
-              type="text"
-              placeholder={type === 'income' ? "Ex: Salário, Pensão" : "Ex: Aluguel, Internet"}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descrição</label>
+              <input
+                type="text"
+                placeholder="Ex: Salário, Aluguel, Mercado..."
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Valor (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="0,00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg font-medium"
-              required
-            />
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Valor</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">R$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-2xl font-bold"
+                  required
+                />
+              </div>
+            </div>
           </div>
 
           <button
             type="submit"
-            className={`w-full py-3.5 rounded-xl text-white font-semibold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all ${
-              type === 'income' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
-            }`}
+            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all text-lg"
           >
-            Adicionar {type === 'income' ? 'Entrada' : 'Saída'}
+            Confirmar Lançamento
           </button>
         </form>
       </div>
